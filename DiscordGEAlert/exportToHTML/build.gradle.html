@@ -1,0 +1,82 @@
+<html>
+<head>
+<title>build.gradle</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #bcbec4;}
+.s1 { color: #bcbec4;}
+.s2 { color: #6aab73;}
+.s3 { color: #cf8e6d;}
+.s4 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+build.gradle</font>
+</center></td></tr></table>
+<pre><span class="s0">plugins </span><span class="s1">{</span>
+	<span class="s0">id </span><span class="s2">'java'</span>
+<span class="s1">}</span>
+
+<span class="s0">repositories </span><span class="s1">{</span>
+	<span class="s0">mavenLocal</span><span class="s1">()</span>
+	<span class="s0">maven </span><span class="s1">{</span>
+		<span class="s0">url </span><span class="s1">= </span><span class="s2">'https://repo.runelite.net'</span>
+		<span class="s0">content </span><span class="s1">{</span>
+			<span class="s0">includeGroupByRegex</span><span class="s1">(</span><span class="s2">&quot;net</span><span class="s3">\\</span><span class="s2">.runelite.*&quot;</span><span class="s1">)</span>
+		<span class="s1">}</span>
+	<span class="s1">}</span>
+	<span class="s0">mavenCentral</span><span class="s1">()</span>
+<span class="s1">}</span>
+
+<span class="s3">def </span><span class="s0">runeLiteVersion </span><span class="s1">= </span><span class="s2">'latest.release'</span>
+
+<span class="s0">dependencies </span><span class="s1">{</span>
+	<span class="s0">compileOnly group: </span><span class="s2">'net.runelite'</span><span class="s0">, name:</span><span class="s2">'client'</span><span class="s0">, version: runeLiteVersion</span>
+
+	<span class="s0">compileOnly </span><span class="s2">'org.projectlombok:lombok:1.18.30'</span>
+	<span class="s0">annotationProcessor </span><span class="s2">'org.projectlombok:lombok:1.18.30'</span>
+
+	<span class="s0">testImplementation </span><span class="s2">'junit:junit:4.12'</span>
+	<span class="s0">testImplementation group: </span><span class="s2">'net.runelite'</span><span class="s0">, name:</span><span class="s2">'client'</span><span class="s0">, version: runeLiteVersion</span>
+	<span class="s0">testImplementation group: </span><span class="s2">'net.runelite'</span><span class="s0">, name:</span><span class="s2">'jshell'</span><span class="s0">, version: runeLiteVersion</span>
+<span class="s1">}</span>
+
+<span class="s0">group </span><span class="s1">= </span><span class="s2">'com.example'</span>
+<span class="s0">version </span><span class="s1">= </span><span class="s2">'1.0-SNAPSHOT'</span>
+
+<span class="s0">tasks.withType</span><span class="s1">(</span><span class="s0">JavaCompile</span><span class="s1">)</span><span class="s0">.configureEach </span><span class="s1">{</span>
+	<span class="s0">options.encoding </span><span class="s1">= </span><span class="s2">'UTF-8'</span>
+	<span class="s0">options.release.set</span><span class="s1">(</span><span class="s4">11</span><span class="s1">)</span>
+<span class="s1">}</span>
+
+<span class="s0">tasks.register</span><span class="s1">(</span><span class="s2">'shadowJar'</span><span class="s0">, Jar</span><span class="s1">) {</span>
+	<span class="s0">dependsOn configurations.testRuntimeClasspath</span>
+	<span class="s0">manifest </span><span class="s1">{</span>
+		<span class="s0">attributes</span><span class="s1">(</span><span class="s2">'Main-Class'</span><span class="s0">: </span><span class="s2">'com.example.ExamplePluginTest'</span><span class="s0">, </span><span class="s2">'Multi-Release'</span><span class="s0">: </span><span class="s3">true</span><span class="s1">)</span>
+	<span class="s1">}</span>
+
+	<span class="s0">duplicatesStrategy </span><span class="s1">= </span><span class="s0">DuplicatesStrategy.EXCLUDE</span>
+	<span class="s0">from sourceSets.main.output</span>
+	<span class="s0">from sourceSets.test.output</span>
+	<span class="s0">from </span><span class="s1">{</span>
+		<span class="s0">configurations.testRuntimeClasspath.collect </span><span class="s1">{ </span><span class="s0">file -&gt;</span>
+			<span class="s0">file.isDirectory</span><span class="s1">() </span><span class="s0">? file : zipTree</span><span class="s1">(</span><span class="s0">file</span><span class="s1">)</span>
+		<span class="s1">}</span>
+	<span class="s1">}</span>
+
+	<span class="s0">exclude </span><span class="s2">'META-INF/INDEX.LIST'</span>
+	<span class="s0">exclude </span><span class="s2">'META-INF/*.SF'</span>
+	<span class="s0">exclude </span><span class="s2">'META-INF/*.DSA'</span>
+	<span class="s0">exclude </span><span class="s2">'META-INF/*.RSA'</span>
+	<span class="s0">exclude </span><span class="s2">'**/module-info.class'</span>
+
+	<span class="s0">group </span><span class="s1">= </span><span class="s0">BasePlugin.BUILD_GROUP</span>
+	<span class="s0">archiveClassifier.set</span><span class="s1">(</span><span class="s2">'shadow'</span><span class="s1">)</span>
+	<span class="s0">archiveFileName.set</span><span class="s1">(</span><span class="s2">&quot;</span><span class="s0">$</span><span class="s1">{</span><span class="s0">rootProject.name</span><span class="s1">}</span><span class="s2">-</span><span class="s0">$</span><span class="s1">{</span><span class="s0">project.version</span><span class="s1">}</span><span class="s2">-all.jar&quot;</span><span class="s1">)</span>
+<span class="s1">}</span>
+</pre>
+</body>
+</html>

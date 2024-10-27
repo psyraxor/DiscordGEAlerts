@@ -1,0 +1,109 @@
+<html>
+<head>
+<title>DiscordGEAlertPlugin.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+DiscordGEAlertPlugin.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">com</span><span class="s2">.</span><span class="s1">SpoonPleae</span><span class="s2">;</span>
+
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">google</span><span class="s2">.</span><span class="s1">inject</span><span class="s2">.</span><span class="s1">Provides</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">javax</span><span class="s2">.</span><span class="s1">inject</span><span class="s2">.</span><span class="s1">Inject</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">lombok</span><span class="s2">.</span><span class="s1">extern</span><span class="s2">.</span><span class="s1">slf4j</span><span class="s2">.</span><span class="s1">Slf4j</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">net</span><span class="s2">.</span><span class="s1">runelite</span><span class="s2">.</span><span class="s1">api</span><span class="s2">.</span><span class="s1">Client</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">net</span><span class="s2">.</span><span class="s1">runelite</span><span class="s2">.</span><span class="s1">api</span><span class="s2">.</span><span class="s1">GrandExchangeOffer</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">net</span><span class="s2">.</span><span class="s1">runelite</span><span class="s2">.</span><span class="s1">api</span><span class="s2">.</span><span class="s1">GrandExchangeOfferState</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">net</span><span class="s2">.</span><span class="s1">runelite</span><span class="s2">.</span><span class="s1">api</span><span class="s2">.</span><span class="s1">events</span><span class="s2">.</span><span class="s1">GrandExchangeOfferChanged</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">net</span><span class="s2">.</span><span class="s1">runelite</span><span class="s2">.</span><span class="s1">client</span><span class="s2">.</span><span class="s1">config</span><span class="s2">.</span><span class="s1">ConfigManager</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">net</span><span class="s2">.</span><span class="s1">runelite</span><span class="s2">.</span><span class="s1">client</span><span class="s2">.</span><span class="s1">eventbus</span><span class="s2">.</span><span class="s1">Subscribe</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">net</span><span class="s2">.</span><span class="s1">runelite</span><span class="s2">.</span><span class="s1">client</span><span class="s2">.</span><span class="s1">plugins</span><span class="s2">.</span><span class="s1">Plugin</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">net</span><span class="s2">.</span><span class="s1">runelite</span><span class="s2">.</span><span class="s1">client</span><span class="s2">.</span><span class="s1">plugins</span><span class="s2">.</span><span class="s1">PluginDescriptor</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">okhttp3</span><span class="s2">.*;</span>
+
+<span class="s0">import </span><span class="s1">java</span><span class="s2">.</span><span class="s1">io</span><span class="s2">.</span><span class="s1">IOException</span><span class="s2">;</span>
+
+<span class="s1">@Slf4j</span>
+<span class="s1">@PluginDescriptor</span><span class="s2">(</span>
+		<span class="s1">name </span><span class="s2">= </span><span class="s3">&quot;Discord GE Alerts&quot;</span><span class="s2">,</span>
+		<span class="s1">description </span><span class="s2">= </span><span class="s3">&quot;Sends a notification to Discord when a GE offer is ready to collect&quot;</span><span class="s2">,</span>
+		<span class="s1">tags </span><span class="s2">= {</span><span class="s3">&quot;GE&quot;</span><span class="s2">, </span><span class="s3">&quot;Grand Exchange&quot;</span><span class="s2">, </span><span class="s3">&quot;Discord&quot;</span><span class="s2">, </span><span class="s3">&quot;webhook&quot;</span><span class="s2">}</span>
+<span class="s2">)</span>
+<span class="s0">public class </span><span class="s1">DiscordGEAlertPlugin </span><span class="s0">extends </span><span class="s1">Plugin</span>
+<span class="s2">{</span>
+	<span class="s0">private static final </span><span class="s1">OkHttpClient httpClient </span><span class="s2">= </span><span class="s0">new </span><span class="s1">OkHttpClient</span><span class="s2">();</span>
+
+	<span class="s1">@Inject</span>
+	<span class="s0">private </span><span class="s1">Client client</span><span class="s2">;</span>
+
+	<span class="s1">@Inject</span>
+	<span class="s0">private </span><span class="s1">DiscordGEAlertConfig config</span><span class="s2">;</span>
+
+	<span class="s1">@Provides</span>
+	<span class="s1">DiscordGEAlertConfig provideConfig</span><span class="s2">(</span><span class="s1">ConfigManager configManager</span><span class="s2">)</span>
+	<span class="s2">{</span>
+		<span class="s0">return </span><span class="s1">configManager</span><span class="s2">.</span><span class="s1">getConfig</span><span class="s2">(</span><span class="s1">DiscordGEAlertConfig</span><span class="s2">.</span><span class="s0">class</span><span class="s2">);</span>
+	<span class="s2">}</span>
+
+	<span class="s1">@Subscribe</span>
+	<span class="s0">public void </span><span class="s1">onGrandExchangeOfferChanged</span><span class="s2">(</span><span class="s1">GrandExchangeOfferChanged event</span><span class="s2">)</span>
+	<span class="s2">{</span>
+		<span class="s1">GrandExchangeOffer offer </span><span class="s2">= </span><span class="s1">event</span><span class="s2">.</span><span class="s1">getOffer</span><span class="s2">();</span>
+		<span class="s1">GrandExchangeOfferState state </span><span class="s2">= </span><span class="s1">offer</span><span class="s2">.</span><span class="s1">getState</span><span class="s2">();</span>
+
+		<span class="s0">if </span><span class="s2">(</span><span class="s1">state </span><span class="s2">== </span><span class="s1">GrandExchangeOfferState</span><span class="s2">.</span><span class="s1">BOUGHT </span><span class="s2">|| </span><span class="s1">state </span><span class="s2">== </span><span class="s1">GrandExchangeOfferState</span><span class="s2">.</span><span class="s1">SOLD</span><span class="s2">)</span>
+		<span class="s2">{</span>
+			<span class="s1">String message </span><span class="s2">= </span><span class="s3">&quot;Your GE offer for item ID &quot; </span><span class="s2">+ </span><span class="s1">offer</span><span class="s2">.</span><span class="s1">getItemId</span><span class="s2">() + </span><span class="s3">&quot; is ready to collect!&quot;</span><span class="s2">;</span>
+			<span class="s1">sendDiscordNotification</span><span class="s2">(</span><span class="s1">message</span><span class="s2">);</span>
+		<span class="s2">}</span>
+	<span class="s2">}</span>
+
+	<span class="s0">private void </span><span class="s1">sendDiscordNotification</span><span class="s2">(</span><span class="s1">String message</span><span class="s2">)</span>
+	<span class="s2">{</span>
+		<span class="s1">String webhookUrl </span><span class="s2">= </span><span class="s1">config</span><span class="s2">.</span><span class="s1">webhookUrl</span><span class="s2">();</span>
+		<span class="s0">if </span><span class="s2">(</span><span class="s1">webhookUrl </span><span class="s2">== </span><span class="s0">null </span><span class="s2">|| </span><span class="s1">webhookUrl</span><span class="s2">.</span><span class="s1">isEmpty</span><span class="s2">())</span>
+		<span class="s2">{</span>
+			<span class="s1">log</span><span class="s2">.</span><span class="s1">warn</span><span class="s2">(</span><span class="s3">&quot;Discord webhook URL not set&quot;</span><span class="s2">);</span>
+			<span class="s0">return</span><span class="s2">;</span>
+		<span class="s2">}</span>
+
+		<span class="s1">RequestBody body </span><span class="s2">= </span><span class="s0">new </span><span class="s1">FormBody</span><span class="s2">.</span><span class="s1">Builder</span><span class="s2">()</span>
+				<span class="s2">.</span><span class="s1">add</span><span class="s2">(</span><span class="s3">&quot;content&quot;</span><span class="s2">, </span><span class="s1">message</span><span class="s2">)</span>
+				<span class="s2">.</span><span class="s1">build</span><span class="s2">();</span>
+
+		<span class="s1">Request request </span><span class="s2">= </span><span class="s0">new </span><span class="s1">Request</span><span class="s2">.</span><span class="s1">Builder</span><span class="s2">()</span>
+				<span class="s2">.</span><span class="s1">url</span><span class="s2">(</span><span class="s1">webhookUrl</span><span class="s2">)</span>
+				<span class="s2">.</span><span class="s1">post</span><span class="s2">(</span><span class="s1">body</span><span class="s2">)</span>
+				<span class="s2">.</span><span class="s1">build</span><span class="s2">();</span>
+
+		<span class="s1">httpClient</span><span class="s2">.</span><span class="s1">newCall</span><span class="s2">(</span><span class="s1">request</span><span class="s2">).</span><span class="s1">enqueue</span><span class="s2">(</span><span class="s0">new </span><span class="s1">Callback</span><span class="s2">()</span>
+		<span class="s2">{</span>
+			<span class="s1">@Override</span>
+			<span class="s0">public void </span><span class="s1">onFailure</span><span class="s2">(</span><span class="s1">Call call</span><span class="s2">, </span><span class="s1">IOException e</span><span class="s2">)</span>
+			<span class="s2">{</span>
+				<span class="s1">log</span><span class="s2">.</span><span class="s1">error</span><span class="s2">(</span><span class="s3">&quot;Failed to send Discord webhook notification&quot;</span><span class="s2">, </span><span class="s1">e</span><span class="s2">);</span>
+			<span class="s2">}</span>
+
+			<span class="s1">@Override</span>
+			<span class="s0">public void </span><span class="s1">onResponse</span><span class="s2">(</span><span class="s1">Call call</span><span class="s2">, </span><span class="s1">Response response</span><span class="s2">) </span><span class="s0">throws </span><span class="s1">IOException</span>
+			<span class="s2">{</span>
+				<span class="s0">if </span><span class="s2">(!</span><span class="s1">response</span><span class="s2">.</span><span class="s1">isSuccessful</span><span class="s2">())</span>
+				<span class="s2">{</span>
+					<span class="s1">log</span><span class="s2">.</span><span class="s1">error</span><span class="s2">(</span><span class="s3">&quot;Unexpected response from Discord webhook: &quot; </span><span class="s2">+ </span><span class="s1">response</span><span class="s2">);</span>
+				<span class="s2">}</span>
+				<span class="s1">response</span><span class="s2">.</span><span class="s1">close</span><span class="s2">();</span>
+			<span class="s2">}</span>
+		<span class="s2">});</span>
+	<span class="s2">}</span>
+<span class="s2">}</span></pre>
+</body>
+</html>
